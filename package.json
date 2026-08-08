@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "facebook-event-scraper": "^0.2.7"
+  }
+}
