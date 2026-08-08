@@ -11,7 +11,7 @@ from pathlib import Path
 
 from scrape import EVENTS_DIR, DATA, load_location_filter, event_in_area
 
-OUT = DATA / "browse.html"
+OUT = DATA / "site" / "index.html"
 
 TEMPLATE = """<!doctype html>
 <meta charset="utf-8">
@@ -120,6 +120,7 @@ def main():
         })
     page = TEMPLATE.replace("__EVENTS__", json.dumps(events, ensure_ascii=False)
                             .replace("</", "<\\/"))
+    OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(page)
     print(f"{len(events)} events -> {OUT}")
 

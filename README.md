@@ -59,9 +59,24 @@ python3 browse.py    # writes data/browse.html
 ```
 
 Generates a self-contained event browser (no server needed) — open
-`data/browse.html` in a browser. Shows one day at a time (date picker +
+`data/site/index.html` in a browser. Shows one day at a time (date picker +
 prev/next, defaults to today); events outside the `location_filter.json`
 radius and cancelled events are omitted. Rerun after each scrape.
+
+### Hosting (Cloudflare Pages)
+
+One-time: `npx wrangler login`. Then after each `browse.py` run:
+
+```sh
+npm run deploy    # -> https://<project-name>.pages.dev
+```
+
+The project name (and thus the URL) is set in the `deploy` script in
+`package.json` — change `--project-name=krk-events` to your own; the
+project is created automatically on first deploy.
+
+Only `data/site/` (the single generated HTML file) is uploaded — never the
+raw scraped data.
 
 ## Output (`data/`, gitignored)
 
