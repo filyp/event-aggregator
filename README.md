@@ -52,6 +52,17 @@ Discovered hosts are fetched via their numeric `profile.php?id=` URL (works
 for both Pages and Users, and avoids the library's strict vanity-URL regex);
 seeds use the URL from `seed_hosts.txt` directly.
 
+## Browsing
+
+```sh
+python3 browse.py    # writes data/browse.html
+```
+
+Generates a self-contained event browser (no server needed) — open
+`data/browse.html` in a browser. Shows one day at a time (date picker +
+prev/next, defaults to today); events outside the `location_filter.json`
+radius and cancelled events are omitted. Rerun after each scrape.
+
 ## Output (`data/`, gitignored)
 
 - `data/hosts.json` — host graph: url, name, distance, scraped_at, event_ids.
