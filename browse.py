@@ -102,12 +102,19 @@ render();
 def main():
     geo = load_location_filter()
     events = []
+    seen = set()
     for f in sorted(EVENTS_DIR.glob("*.json")):
         e = json.loads(f.read_text())
         if not event_in_area(e, geo):
             continue
         if not e.get("startTimestamp") or e.get("isCanceled"):
             continue
+        # dedupe: recurring events are saved under both the series id and the
+        # occurrence id, and venues sometimes double-post identical events
+        keys = {e["id"], (e["name"].strip(), e["startTimestamp"])}
+        if keys & seen:
+            continue
+        seen |= keys
         events.append({
             "name": e["name"],
             "start": e["startTimestamp"],
