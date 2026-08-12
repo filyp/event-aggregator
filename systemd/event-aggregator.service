@@ -1,0 +1,11 @@
+[Unit]
+Description=Scrape FB events and deploy browse site
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/projects/event-aggregator
+# wait (up to 30 min) for network before starting
+ExecStartPre=/bin/sh -c 'until ping -c1 -W2 cloudflare.com >/dev/null 2>&1; do sleep 15; done'
+TimeoutStartSec=30min
+TimeoutStopSec=6h
+ExecStart=/bin/bash update.sh

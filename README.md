@@ -48,6 +48,12 @@ python3 scrape.py scrape --rescrape       # re-scrape already-scraped hosts
 python3 scrape.py status                  # host/event counts per distance
 ```
 
+The scrape loop repeats until no eligible hosts remain, so hosts discovered
+mid-run are scraped in the same invocation (up to `--max-distance`). Hosts
+whose already-fetched events are more than half outside the geo radius
+(touring acts) are skipped entirely and reported. Event details are cached on
+disk, so re-scraping a host only re-lists its events and fetches new ones.
+
 Discovered hosts are fetched via their numeric `profile.php?id=` URL (works
 for both Pages and Users, and avoids the library's strict vanity-URL regex);
 seeds use the URL from `seed_hosts.txt` directly.

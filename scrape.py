@@ -38,6 +38,10 @@ BACKOFFS = [15, 60]  # retry sleeps after a failed request
 def norm_url(url: str) -> str:
     url = url.strip().rstrip("/")
     url = re.sub(r"^https?://(www\.|m\.)?facebook\.com", "https://www.facebook.com", url)
+    # strip extra query params off profile.php URLs (only ?id= is valid)
+    m = re.match(r"https://www\.facebook\.com/profile\.php\?.*?id=(\d+)", url)
+    if m:
+        url = f"https://www.facebook.com/profile.php?id={m.group(1)}"
     return url
 
 
@@ -137,13 +141,33 @@ def register_host(hosts: dict, h: dict, distance: int):
         }
 
 
+def mostly_outside(host: dict, geo: dict | None) -> bool:
+    """True if more than half of the host's already-fetched events fall
+    outside the geo radius — a touring act, not a local host."""
+    if geo is None:
+        return False
+    inside = outside = 0
+    for eid in host.get("event_ids", []):
+        f = EVENTS_DIR / f"{eid}.json"
+        if not f.exists():
+            continue
+        if event_in_area(json.loads(f.read_text()), geo):
+            inside += 1
+        else:
+            outside += 1
+    return outside > (inside + outside) / 2
+
+
 def scrape_host(hosts: dict, key: str, include_past: bool, geo: dict | None):
     host = hosts[key]
     print(f"== {host.get('name') or host['url']} (distance {host['distance']})")
     # the numeric profile.php form works for both Pages and Users and never
     # trips the library's URL regex (vanity slugs with hyphens etc. do)
-    url = (f"https://www.facebook.com/profile.php?id={host['fb_id']}"
-           if host.get("fb_id") else host["url"])
+    # numeric profile.php form is most robust, but some hosts only have an
+    # opaque pfbid... identifier — those must use their vanity URL
+    fbid = host.get("fb_id") or ""
+    url = (f"https://www.facebook.com/profile.php?id={fbid}"
+           if fbid.isdigit() else host["url"])
     event_ids = []
     for etype in ["upcoming"] + (["past"] if include_past else []):
         try:
@@ -188,14 +212,28 @@ def cmd_scrape(args):
     if geo:
         print(f"location filter: {geo['radius_km']} km around "
               f"{geo['latitude']},{geo['longitude']}")
-    todo = [
-        k for k, h in sorted(hosts.items(), key=lambda kv: kv[1]["distance"])
-        if h["distance"] <= args.max_distance
-        and (args.rescrape or not h.get("scraped_at"))
-    ]
-    print(f"{len(todo)} hosts to scrape (max distance {args.max_distance})")
-    for key in todo:
-        scrape_host(hosts, key, args.past, geo)
+    done: set[str] = set()
+    skipped = 0
+    while True:
+        todo, skipped = [], 0
+        for k, h in sorted(hosts.items(), key=lambda kv: kv[1]["distance"]):
+            if (k in done or h["distance"] > args.max_distance
+                    or not (args.rescrape or not h.get("scraped_at"))):
+                continue
+            if mostly_outside(h, geo):
+                skipped += 1
+                done.add(k)
+                continue
+            todo.append(k)
+        if skipped:
+            print(f"skipped {skipped} hosts with mostly out-of-area events")
+        if not todo:
+            break
+        print(f"{len(todo)} hosts to scrape (max distance {args.max_distance})")
+        for key in todo:
+            scrape_host(hosts, key, args.past, geo)
+            done.add(key)
+        # loop again: scraping may have registered new hosts within range
     cmd_status(args)
 
 

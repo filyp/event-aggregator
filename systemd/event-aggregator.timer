@@ -1,0 +1,10 @@
+[Unit]
+Description=Weekly FB event scrape (Wednesday noon, catch up after sleep/off)
+
+[Timer]
+OnCalendar=Wed 12:00
+# run at next opportunity if the scheduled time was missed (laptop off)
+Persistent=true
+
+[Install]
+WantedBy=timers.target
